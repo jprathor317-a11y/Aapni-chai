@@ -22,7 +22,77 @@ class AapniChaiApp extends StatelessWidget {
   );
 }
 
+
 class Gate extends StatelessWidget {
+  const Gate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const LoginPage();
+    }
+
+    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      future: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snap.hasError) {
+          return Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error, color: Colors.red, size: 45),
+                    const Text(
+                      'Firebase Error',
+                      style: TextStyle(fontSize: 22),
+                    ),
+                    Text('${snap.error}'),
+                    const SizedBox(height: 15),
+                    ElevatedButton(
+                      onPressed: () async {
+                        await FirebaseAuth.instance.signOut();
+                      },
+                      child: const Text('Logout'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        if (!snap.hasData || !snap.data!.exists) {
+          return Scaffold(
+            body: Center(
+              child: Text(
+                'User record nahi mila.\nFirebase users collection check karein.\nUID: ${user.uid}',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+
+        final role = snap.data!.data()?['role'] ?? 'staff';
+
+        return HomePage(isOwner: role == 'owner');
+      },
+    );
+  }
+}
+
   const Gate({super.key});
   @override
   Widget build(BuildContext context) {
