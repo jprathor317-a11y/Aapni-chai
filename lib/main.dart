@@ -23,22 +23,102 @@ class AapniChaiApp extends StatelessWidget {
   );
 }
 
+
 class Gate extends StatelessWidget {
   const Gate({super.key});
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return const LoginPage();
-    return FutureBuilder<DocumentSnapshot<Map<String,dynamic>>>(
-      future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+
+    if (user == null) {
+      return const LoginPage();
+    }
+
+    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      future: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get()
+          .timeout(const Duration(seconds: 15)),
       builder: (context, snap) {
-        if (!snap.hasData) return const Scaffold(body: Center(child:CircularProgressIndicator()));
-        final role = snap.data?.data()?['role'] ?? 'staff';
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (snap.hasError) {
+          return Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 50,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Firebase se data load nahi hua.',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      snap.error.toString(),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () async {
+                        await FirebaseAuth.instance.signOut();
+
+                        if (context.mounted) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const Gate(),
+                            ),
+                          );
+                        }
+                      },
+                      child: const Text('Logout karke Login karein'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        final data = snap.data?.data();
+
+        if (data == null) {
+          return const Scaffold(
+            body: Center(
+              child: Text(
+                'User record Firestore mein nahi mila.',
+              ),
+            ),
+          );
+        }
+
+        final role = (data['role'] ?? 'staff')
+            .toString()
+            .trim()
+            .toLowerCase();
+
         return HomePage(isOwner: role == 'owner');
       },
     );
   }
 }
+
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
