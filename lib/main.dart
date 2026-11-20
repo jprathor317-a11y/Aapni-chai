@@ -127,7 +127,32 @@ class ShopList extends StatelessWidget {
   floatingActionButton:isOwner?FloatingActionButton.extended(onPressed:()=>showDialog(context:context,builder:(_)=>const AddShopDialog()),icon:const Icon(Icons.add),label:const Text('Add Shopkeeper')):null,
   body:StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:FirebaseFirestore.instance.collection('shopkeepers').orderBy('name').snapshots(),builder:(context,snap){
    if(!snap.hasData)return const Center(child:CircularProgressIndicator());
-   return ListView(children:snap.data!.docs.map((d){final x=d.data();return Card(child:ListTile(leading:const CircleAvatar(child:Icon(Icons.store)),title:Text(x['name']??''),subtitle:Text('${x['phone']??''} • ${x['address']??''}\\nRate: ₹${x['rate']??0}/glass'),isThreeLine:true,onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>ShopDetail(id:d.id,data:x,isOwner:isOwner))));}).toList());
+  return ListView(
+  children: snap.data!.docs.map((d) {
+    final x = d.data();
+    return Card(
+      child: ListTile(
+        leading: const CircleAvatar(child: Icon(Icons.store)),
+        title: Text(x['name'] ?? ''),
+        subtitle: Text(
+          '${x['phone'] ?? ''} • ${x['address'] ?? ''}\n'
+          'Rate: ₹${x['rate'] ?? 0}/glass',
+        ),
+        isThreeLine: true,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ShopDetail(
+              id: d.id,
+              data: x,
+              isOwner: isOwner,
+            ),
+          ),
+        ),
+      ),
+    );
+  }).toList(),
+);
   }));
 }
 
