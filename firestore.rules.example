@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false; // Set owner role manually in Firebase Console.
+    }
+    match /shopkeepers/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if signedIn() && userRole() == 'owner';
+    }
+    match /ledger/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if signedIn() && userRole() == 'owner';
+    }
+    match /deliveries/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if signedIn() && userRole() == 'owner';
+    }
+  }
+}
