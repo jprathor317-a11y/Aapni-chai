@@ -29,6 +29,55 @@ jobs:
       - name: Create Android project files
         run: flutter create . --platforms=android
 
+      - name: Configure Firebase
+        run: |
+          cp google-services.json android/app/google-services.json
+          python3 - <<'PY'
+          from pathlib import Path
+
+          settings = next(
+              p for p in [
+                  Path("android/settings.gradle"),
+                  Path("android/settings.gradle.kts")
+              ] if p.exists()
+          )
+
+          app = next(
+              p for p in [
+                  Path("android/app/build.gradle"),
+                  Path("android/app/build.gradle.kts")
+              ] if p.exists()
+          )
+
+          kotlin = settings.suffix == ".kts"
+
+          settings_line = (
+              'id("com.google.gms.google-services") version "4.4.2" apply false'
+              if kotlin else
+              'id "com.google.gms.google-services" version "4.4.2" apply false'
+          )
+
+          app_line = (
+              'id("com.google.gms.google-services")'
+              if kotlin else
+              'id "com.google.gms.google-services"'
+          )
+
+          for path, line in [(settings, settings_line), (app, app_line)]:
+              content = path.read_text()
+              if line not in content:
+                  if "plugins {" not in content:
+                      raise Exception(f"plugins block missing in {path}")
+                  content = content.replace(
+                      "plugins {",
+                      "plugins {\n    " + line,
+                      1
+                  )
+                  path.write_text(content)
+
+          print("Firebase Gradle plugin configured")
+          PY
+
       - name: Install dependencies
         run: flutter pub get
 
